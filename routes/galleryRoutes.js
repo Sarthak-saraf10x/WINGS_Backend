@@ -81,8 +81,9 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
       data: newItem
     });
   } catch (error) {
-    console.error(`Error uploading gallery photo: ${error.message}`);
-    res.status(500).json({ success: false, message: 'Server error uploading gallery photo' });
+    console.error(`[Gallery] Upload error: ${error.name} — ${error.message}`);
+    if (error.http_code) console.error(`[Gallery] Cloudinary HTTP ${error.http_code}`);
+    res.status(500).json({ success: false, message: error.message || 'Server error uploading gallery photo' });
   }
 });
 

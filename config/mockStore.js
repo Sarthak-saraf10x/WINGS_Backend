@@ -124,10 +124,159 @@ let mockReviews = [
   }
 ];
 
+let mockVehicles = [
+  {
+    _id: 'mock_v1',
+    name: 'Toyota Innova Crysta',
+    type: 'Innova',
+    capacity: 7,
+    fuelType: 'Diesel',
+    transmission: 'Manual',
+    ac: true,
+    features: 'GPS Tracking, Spacious Legroom, Charging Ports',
+    pricePerKm: '₹14/km',
+    imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=600',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: 'mock_v2',
+    name: 'Maruti Suzuki Ertiga',
+    type: 'Ertiga',
+    capacity: 7,
+    fuelType: 'CNG',
+    transmission: 'Manual',
+    ac: true,
+    features: 'Music System, Comfortable Seats, Family Friendly',
+    pricePerKm: '₹12/km',
+    imageUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=600',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: 'mock_v3',
+    name: 'Force Tempo Traveller 17',
+    type: 'Tempo Traveller',
+    capacity: 17,
+    fuelType: 'Diesel',
+    transmission: 'Manual',
+    ac: true,
+    features: 'Push-back Seats, Luggage Rack, Large Windows',
+    pricePerKm: '₹22/km',
+    imageUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=600',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
+];
+
+let mockRentals = [
+  {
+    _id: 'mock_rent1',
+    name: 'Swift Dzire Sedan',
+    type: 'Sedan',
+    capacity: 4,
+    ac: true,
+    ratePerKm: '₹11/km',
+    ratePerDay: '₹2,500/day',
+    ratePerHour: '₹300/hr',
+    minFare: '₹500 minimum',
+    features: 'Fuel Efficient, Comfortable, Airport Transfers',
+    imageUrl: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?q=80&w=600',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: 'mock_rent2',
+    name: 'Toyota Innova Crysta',
+    type: 'Innova',
+    capacity: 7,
+    ac: true,
+    ratePerKm: '₹14/km',
+    ratePerDay: '₹4,000/day',
+    ratePerHour: '₹450/hr',
+    minFare: '₹700 minimum',
+    features: 'Spacious, GPS Tracking, Charging Ports',
+    imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=600',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: 'mock_rent3',
+    name: 'Maruti Suzuki Ertiga',
+    type: 'Ertiga',
+    capacity: 7,
+    ac: true,
+    ratePerKm: '₹12/km',
+    ratePerDay: '₹3,200/day',
+    ratePerHour: '₹380/hr',
+    minFare: '₹600 minimum',
+    features: 'Family Friendly, CNG, Music System',
+    imageUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=600',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: 'mock_rent4',
+    name: 'Toyota Fortuner',
+    type: 'SUV',
+    capacity: 7,
+    ac: true,
+    ratePerKm: '₹18/km',
+    ratePerDay: '₹6,500/day',
+    ratePerHour: '₹750/hr',
+    minFare: '₹1,200 minimum',
+    features: 'Luxury Interior, 4x4 Drive, Premium Audio',
+    imageUrl: 'https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?q=80&w=600',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: 'mock_rent5',
+    name: 'Force Tempo Traveller',
+    type: 'Tempo Traveller',
+    capacity: 17,
+    ac: true,
+    ratePerKm: '₹22/km',
+    ratePerDay: '₹8,000/day',
+    ratePerHour: '₹900/hr',
+    minFare: '₹2,000 minimum',
+    features: 'Push-back Seats, Luggage Rack, Group Travel',
+    imageUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=600',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: 'mock_rent6',
+    name: 'Volvo AC Bus 45-Seater',
+    type: 'Luxury Bus',
+    capacity: 45,
+    ac: true,
+    ratePerKm: '₹45/km',
+    ratePerDay: '₹18,000/day',
+    ratePerHour: '',
+    minFare: '₹5,000 minimum',
+    features: 'Recliner Seats, Infotainment, Events & Weddings',
+    imageUrl: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=600',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
+];
+
 module.exports = {
   mockBookings,
   mockEnquiries,
   mockPackages,
   mockGallery,
-  mockReviews
+  mockReviews,
+  mockVehicles,
+  mockRentals
 };

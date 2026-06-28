@@ -14,6 +14,8 @@ const galleryRoutes = require('./routes/galleryRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
+const vehicleRoutes = require('./routes/vehicleRoutes');
+const rentalRoutes = require('./routes/rentalRoutes');
 
 const app = express();
 
@@ -42,6 +44,8 @@ app.use('/api/gallery', galleryRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/rentals', rentalRoutes);
 
 // Root route
 app.get('/', (req, res) => {

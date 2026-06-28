@@ -1,0 +1,117 @@
+const express = require('express');
+const router = express.Router();
+const mongoose = require('mongoose');
+const Rental = require('../models/Rental');
+const { protect } = require('../middleware/auth');
+const upload = require('../middleware/multer');
+const { uploadImage, deleteImage } = require('../config/cloudinary');
+const { mockRentals } = require('../config/mockStore');
+
+/**
+ * @route   GET /api/rentals
+ * @desc    Fetch all rental vehicles
+ * @access  Public
+ */
+router.get('/', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.json({ success: true, count: mockRentals.length, data: mockRentals });
+    }
+    const rentals = await Rental.find({ isActive: true }).sort({ createdAt: -1 });
+    res.json({ success: true, count: rentals.length, data: rentals });
+  } catch (error) {
+    console.error(`[Rentals] Fetch error: ${error.message}`);
+    res.status(500).json({ success: false, message: 'Server error fetching rentals' });
+  }
+});
+
+/**
+ * @route   POST /api/rentals
+ * @desc    Add a new rental vehicle
+ * @access  Private (Admin only)
+ */
+router.post('/', protect, upload.single('image'), async (req, res) => {
+  try {
+    const { name, type, capacity, ac, ratePerKm, ratePerDay, ratePerHour, minFare, features } = req.body;
+
+    if (!name || !type || !capacity) {
+      return res.status(400).json({ success: false, message: 'Please provide vehicle name, type and capacity' });
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      const newRental = {
+        _id: 'mock_r_' + Date.now(),
+        name, type,
+        capacity: Number(capacity),
+        ac: ac === 'true' || ac === true,
+        ratePerKm: ratePerKm || '',
+        ratePerDay: ratePerDay || '',
+        ratePerHour: ratePerHour || '',
+        minFare: minFare || '',
+        features: features || '',
+        imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=600',
+        imagePublicId: 'mock_rpid',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      mockRentals.push(newRental);
+      return res.status(201).json({ success: true, message: 'Rental added (Offline Mode)', data: newRental });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Please upload a vehicle image' });
+    }
+
+    const uploadResult = await uploadImage(req.file.buffer, 'wings_tours/rentals');
+
+    const newRental = new Rental({
+      name, type,
+      capacity: Number(capacity),
+      ac: ac === 'true' || ac === true,
+      ratePerKm: ratePerKm || '',
+      ratePerDay: ratePerDay || '',
+      ratePerHour: ratePerHour || '',
+      minFare: minFare || '',
+      features: features || '',
+      imageUrl: uploadResult.secure_url,
+      imagePublicId: uploadResult.public_id
+    });
+
+    await newRental.save();
+    res.status(201).json({ success: true, message: 'Rental vehicle added successfully', data: newRental });
+  } catch (error) {
+    console.error(`[Rentals] Add error: ${error.message}`);
+    res.status(500).json({ success: false, message: 'Server error adding rental' });
+  }
+});
+
+/**
+ * @route   DELETE /api/rentals/:id
+ * @desc    Delete a rental vehicle
+ * @access  Private (Admin only)
+ */
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      const idx = mockRentals.findIndex(r => r._id === req.params.id);
+      if (idx === -1) return res.status(404).json({ success: false, message: 'Rental not found' });
+      mockRentals.splice(idx, 1);
+      return res.json({ success: true, message: 'Rental deleted (Offline Mode)' });
+    }
+
+    const rental = await Rental.findById(req.params.id);
+    if (!rental) return res.status(404).json({ success: false, message: 'Rental not found' });
+
+    if (rental.imagePublicId) {
+      await deleteImage(rental.imagePublicId);
+    }
+    await Rental.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Rental vehicle deleted successfully' });
+  } catch (error) {
+    console.error(`[Rentals] Delete error: ${error.message}`);
+    res.status(500).json({ success: false, message: 'Server error deleting rental' });
+  }
+});
+
+module.exports = router;
