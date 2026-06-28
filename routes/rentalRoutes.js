@@ -119,4 +119,63 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
+/**
+ * @route   PUT /api/rentals/:id
+ * @desc    Update rental vehicle details or replace image
+ * @access  Private (Admin only)
+ */
+router.put('/:id', protect, upload.single('image'), async (req, res) => {
+  try {
+    const { name, type, capacity, ac, ratePerKm, ratePerDay, ratePerHour, minFare, features } = req.body;
+
+    if (mongoose.connection.readyState !== 1) {
+      const rental = mockRentals.find(r => r._id === req.params.id);
+      if (!rental) {
+        return res.status(404).json({ success: false, message: 'Rental not found' });
+      }
+      if (name) rental.name = name;
+      if (type) rental.type = type;
+      if (capacity) rental.capacity = Number(capacity);
+      if (ac !== undefined) rental.ac = ac === 'true' || ac === true;
+      if (ratePerKm !== undefined) rental.ratePerKm = ratePerKm;
+      if (ratePerDay !== undefined) rental.ratePerDay = ratePerDay;
+      if (ratePerHour !== undefined) rental.ratePerHour = ratePerHour;
+      if (minFare !== undefined) rental.minFare = minFare;
+      if (features !== undefined) rental.features = features;
+      rental.updatedAt = new Date();
+      return res.json({ success: true, message: 'Rental updated (Offline Mode)', data: rental });
+    }
+
+    let rental = await Rental.findById(req.params.id);
+    if (!rental) {
+      return res.status(404).json({ success: false, message: 'Rental not found' });
+    }
+
+    if (name) rental.name = name;
+    if (type) rental.type = type;
+    if (capacity) rental.capacity = Number(capacity);
+    if (ac !== undefined) rental.ac = ac === 'true' || ac === true;
+    if (ratePerKm !== undefined) rental.ratePerKm = ratePerKm;
+    if (ratePerDay !== undefined) rental.ratePerDay = ratePerDay;
+    if (ratePerHour !== undefined) rental.ratePerHour = ratePerHour;
+    if (minFare !== undefined) rental.minFare = minFare;
+    if (features !== undefined) rental.features = features;
+
+    if (req.file) {
+      if (rental.imagePublicId) {
+        await deleteImage(rental.imagePublicId);
+      }
+      const uploadResult = await uploadImage(req.file.buffer, 'wings_tours/rentals');
+      rental.imageUrl = uploadResult.secure_url;
+      rental.imagePublicId = uploadResult.public_id;
+    }
+
+    await rental.save();
+    res.json({ success: true, message: 'Rental vehicle updated successfully', data: rental });
+  } catch (error) {
+    console.error(`[Rentals] Update error: ${error.message}`);
+    res.status(500).json({ success: false, message: 'Server error updating rental' });
+  }
+});
+
 module.exports = router;

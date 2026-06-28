@@ -145,6 +145,16 @@ router.put('/:id', protect, upload.single('image'), async (req, res) => {
       if (isActive !== undefined) {
         packageItem.isActive = isActive === 'true' || isActive === true;
       }
+      if (req.file) {
+        try {
+          const uploadResult = await uploadImage(req.file.buffer, 'wings_tours/packages');
+          packageItem.imageUrl = uploadResult.secure_url;
+          packageItem.imagePublicId = uploadResult.public_id;
+        } catch (uploadError) {
+          packageItem.imageUrl = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=600';
+          packageItem.imagePublicId = 'mock_pid_edited';
+        }
+      }
       packageItem.updatedAt = new Date();
       return res.json({
         success: true,

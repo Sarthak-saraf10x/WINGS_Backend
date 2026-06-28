@@ -104,18 +104,61 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
  * @desc    Update vehicle details
  * @access  Private (Admin only)
  */
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, upload.single('image'), async (req, res) => {
   try {
+    const { name, type, capacity, fuelType, transmission, ac, features, pricePerKm } = req.body;
+
     if (mongoose.connection.readyState !== 1) {
-      const index = mockVehicles.findIndex(v => v._id === req.params.id);
-      if (index === -1) return res.status(404).json({ success: false, message: 'Vehicle not found' });
-      mockVehicles[index] = { ...mockVehicles[index], ...req.body, updatedAt: new Date() };
-      return res.json({ success: true, message: 'Vehicle updated (Offline Mode)', data: mockVehicles[index] });
+      const vehicle = mockVehicles.find(v => v._id === req.params.id);
+      if (!vehicle) {
+        return res.status(404).json({ success: false, message: 'Vehicle not found' });
+      }
+      if (name) vehicle.name = name;
+      if (type) vehicle.type = type;
+      if (capacity) vehicle.capacity = Number(capacity);
+      if (fuelType) vehicle.fuelType = fuelType;
+      if (transmission) vehicle.transmission = transmission;
+      if (ac !== undefined) vehicle.ac = ac === 'true' || ac === true;
+      if (features !== undefined) vehicle.features = features;
+      if (pricePerKm !== undefined) vehicle.pricePerKm = pricePerKm;
+      if (req.file) {
+        try {
+          const uploadResult = await uploadImage(req.file.buffer, 'wings_tours/vehicles');
+          vehicle.imageUrl = uploadResult.secure_url;
+          vehicle.imagePublicId = uploadResult.public_id;
+        } catch (uploadError) {
+          vehicle.imageUrl = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=600';
+          vehicle.imagePublicId = 'mock_vpid_edited';
+        }
+      }
+      vehicle.updatedAt = new Date();
+      return res.json({ success: true, message: 'Vehicle updated (Offline Mode)', data: vehicle });
     }
 
-    const vehicle = await Vehicle.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
-    if (!vehicle) return res.status(404).json({ success: false, message: 'Vehicle not found' });
+    let vehicle = await Vehicle.findById(req.params.id);
+    if (!vehicle) {
+      return res.status(404).json({ success: false, message: 'Vehicle not found' });
+    }
 
+    if (name) vehicle.name = name;
+    if (type) vehicle.type = type;
+    if (capacity) vehicle.capacity = Number(capacity);
+    if (fuelType) vehicle.fuelType = fuelType;
+    if (transmission) vehicle.transmission = transmission;
+    if (ac !== undefined) vehicle.ac = ac === 'true' || ac === true;
+    if (features !== undefined) vehicle.features = features;
+    if (pricePerKm !== undefined) vehicle.pricePerKm = pricePerKm;
+
+    if (req.file) {
+      if (vehicle.imagePublicId) {
+        await deleteImage(vehicle.imagePublicId);
+      }
+      const uploadResult = await uploadImage(req.file.buffer, 'wings_tours/vehicles');
+      vehicle.imageUrl = uploadResult.secure_url;
+      vehicle.imagePublicId = uploadResult.public_id;
+    }
+
+    await vehicle.save();
     res.json({ success: true, message: 'Vehicle updated successfully', data: vehicle });
   } catch (error) {
     console.error(`Error updating vehicle: ${error.message}`);

@@ -134,4 +134,71 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
+/**
+ * @route   PUT /api/gallery/:id
+ * @desc    Update gallery photo details or replace image
+ * @access  Private (Admin only)
+ */
+router.put('/:id', protect, upload.single('image'), async (req, res) => {
+  try {
+    const { title, category, description } = req.body;
+
+    if (mongoose.connection.readyState !== 1) {
+      const item = mockGallery.find(g => g._id === req.params.id);
+      if (!item) {
+        return res.status(404).json({ success: false, message: 'Gallery item not found' });
+      }
+      if (title) item.title = title;
+      if (category) item.category = category;
+      if (description !== undefined) item.description = description;
+      if (req.file) {
+        try {
+          const uploadResult = await uploadImage(req.file.buffer, 'wings_tours/gallery');
+          item.imageUrl = uploadResult.secure_url;
+          item.imagePublicId = uploadResult.public_id;
+        } catch (uploadError) {
+          item.imageUrl = 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=600';
+          item.imagePublicId = 'mock_gpid_edited';
+        }
+      }
+      item.updatedAt = new Date();
+      return res.json({
+        success: true,
+        message: 'Gallery item updated successfully (Offline Mode)',
+        data: item
+      });
+    }
+
+    let item = await Gallery.findById(req.params.id);
+    if (!item) {
+      return res.status(404).json({ success: false, message: 'Gallery item not found' });
+    }
+
+    if (title) item.title = title;
+    if (category) item.category = category;
+    if (description !== undefined) item.description = description;
+
+    if (req.file) {
+      // Delete old image
+      if (item.imagePublicId) {
+        await deleteImage(item.imagePublicId);
+      }
+      // Upload new image
+      const uploadResult = await uploadImage(req.file.buffer, 'wings_tours/gallery');
+      item.imageUrl = uploadResult.secure_url;
+      item.imagePublicId = uploadResult.public_id;
+    }
+
+    await item.save();
+    res.json({
+      success: true,
+      message: 'Gallery item updated successfully',
+      data: item
+    });
+  } catch (error) {
+    console.error(`Error updating gallery item: ${error.message}`);
+    res.status(500).json({ success: false, message: 'Server error updating gallery item' });
+  }
+});
+
 module.exports = router;
