@@ -26,7 +26,7 @@ if (isEmailConfigured) {
  */
 const sendBookingNotification = async (bookingData) => {
   const mailOptions = {
-    from: `"Wings Booking Alerts" <${process.env.EMAIL_USER || 'no-reply@wingstravels.co.in'}>`,
+    from: `"Wings Booking Alerts" <${process.env.EMAIL_USER || 'no-reply@gmail.com'}>`,
     to: process.env.OWNER_EMAIL || process.env.EMAIL_USER,
     subject: `🚨 New Ride Booking Request: ${bookingData.name}`,
     html: `
@@ -101,7 +101,7 @@ const sendBookingNotification = async (bookingData) => {
  */
 const sendEnquiryNotification = async (enquiryData) => {
   const mailOptions = {
-    from: `"Wings Enquiry Alerts" <${process.env.EMAIL_USER || 'no-reply@wingstravels.co.in'}>`,
+    from: `"Wings Enquiry Alerts" <${process.env.EMAIL_USER || 'no-reply@gmail.com'}>`,
     to: process.env.OWNER_EMAIL || process.env.EMAIL_USER,
     subject: `✉️ New Contact Inquiry: ${enquiryData.name}`,
     html: `
