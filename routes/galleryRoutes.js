@@ -38,14 +38,26 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide a title and category' });
     }
 
+    let imageUrl = 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=600';
+    let imagePublicId = 'mock_gpid';
+
+    if (req.file) {
+      // Stream upload file buffer to Cloudinary
+      const uploadResult = await uploadImage(req.file.buffer, 'wings_tours/gallery');
+      imageUrl = uploadResult.secure_url;
+      imagePublicId = uploadResult.public_id;
+    } else if (mongoose.connection.readyState === 1) {
+      return res.status(400).json({ success: false, message: 'Please upload a gallery image file' });
+    }
+
     if (mongoose.connection.readyState !== 1) {
       const newItem = {
         _id: 'mock_g_' + Date.now(),
         title,
         category,
         description,
-        imageUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=600',
-        imagePublicId: 'mock_gpid',
+        imageUrl,
+        imagePublicId,
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -57,20 +69,13 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
       });
     }
 
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Please upload a gallery image file' });
-    }
-
-    // Stream upload file buffer to Cloudinary
-    const uploadResult = await uploadImage(req.file.buffer, 'wings_tours/gallery');
-
-    // Create gallery item
+    // Create gallery item in database
     const newItem = new Gallery({
       title,
       category,
       description,
-      imageUrl: uploadResult.secure_url,
-      imagePublicId: uploadResult.public_id
+      imageUrl,
+      imagePublicId
     });
 
     await newItem.save();

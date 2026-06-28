@@ -38,6 +38,18 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide vehicle name, type and capacity' });
     }
 
+    let imageUrl = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=600';
+    let imagePublicId = 'mock_vpid';
+
+    if (req.file) {
+      // Upload image to Cloudinary
+      const uploadResult = await uploadImage(req.file.buffer, 'wings_tours/vehicles');
+      imageUrl = uploadResult.secure_url;
+      imagePublicId = uploadResult.public_id;
+    } else if (mongoose.connection.readyState === 1) {
+      return res.status(400).json({ success: false, message: 'Please upload a vehicle image' });
+    }
+
     if (mongoose.connection.readyState !== 1) {
       const newVehicle = {
         _id: 'mock_v_' + Date.now(),
@@ -48,8 +60,8 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
         ac: ac === 'true' || ac === true,
         features: features || '',
         pricePerKm: pricePerKm || '',
-        imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=600',
-        imagePublicId: 'mock_vpid',
+        imageUrl,
+        imagePublicId,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -62,13 +74,6 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
       });
     }
 
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Please upload a vehicle image' });
-    }
-
-    // Upload image to Cloudinary
-    const uploadResult = await uploadImage(req.file.buffer, 'wings_tours/vehicles');
-
     const newVehicle = new Vehicle({
       name, type,
       capacity: Number(capacity),
@@ -77,8 +82,8 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
       ac: ac === 'true' || ac === true,
       features: features || '',
       pricePerKm: pricePerKm || '',
-      imageUrl: uploadResult.secure_url,
-      imagePublicId: uploadResult.public_id
+      imageUrl,
+      imagePublicId
     });
 
     await newVehicle.save();

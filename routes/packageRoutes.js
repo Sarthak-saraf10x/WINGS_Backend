@@ -53,6 +53,18 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide title, duration, price and description' });
     }
 
+    let imageUrl = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=600';
+    let imagePublicId = 'mock_pid';
+
+    if (req.file) {
+      // Stream upload file buffer to Cloudinary
+      const uploadResult = await uploadImage(req.file.buffer, 'wings_tours/packages');
+      imageUrl = uploadResult.secure_url;
+      imagePublicId = uploadResult.public_id;
+    } else if (mongoose.connection.readyState === 1) {
+      return res.status(400).json({ success: false, message: 'Please upload a tour package cover photo' });
+    }
+
     if (mongoose.connection.readyState !== 1) {
       const newPackage = {
         _id: 'mock_p_' + Date.now(),
@@ -61,8 +73,8 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
         rating: rating ? Number(rating) : 5.0,
         price,
         description,
-        imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=600',
-        imagePublicId: 'mock_pid',
+        imageUrl,
+        imagePublicId,
         isFeatured: isFeatured === 'false' || isFeatured === false ? false : true,
         isActive: isActive === 'false' || isActive === false ? false : true,
         badge,
@@ -78,13 +90,6 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
       });
     }
 
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Please upload a tour package cover photo' });
-    }
-
-    // Stream upload file buffer to Cloudinary
-    const uploadResult = await uploadImage(req.file.buffer, 'wings_tours/packages');
-
     // Create package object
     const newPackage = new Package({
       title,
@@ -92,8 +97,8 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
       rating: rating ? Number(rating) : 5.0,
       price,
       description,
-      imageUrl: uploadResult.secure_url,
-      imagePublicId: uploadResult.public_id,
+      imageUrl,
+      imagePublicId,
       isFeatured: isFeatured === 'false' ? false : true,
       isActive: isActive === 'false' ? false : true,
       badge,
