@@ -93,6 +93,23 @@ router.get('/google-client-id', (req, res) => {
 });
 
 /**
+ * @route   GET /api/admin/profile
+ * @desc    Get logged in admin profile
+ * @access  Protected
+ */
+router.get('/profile', protect, (req, res) => {
+  res.json({
+    success: true,
+    admin: {
+      id: req.admin._id || 'mock_admin_id',
+      username: req.admin.username,
+      email: req.admin.email,
+      role: req.admin.role || 'admin'
+    }
+  });
+});
+
+/**
  * @route   POST /api/admin/google-login
  * @desc    Authenticate admin using Google ID Token
  * @access  Public
