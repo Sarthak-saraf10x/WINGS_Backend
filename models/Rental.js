@@ -1,11 +1,6 @@
 const mongoose = require('mongoose');
 
 const RentalSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Vehicle name is required'],
-    trim: true
-  },
   type: {
     type: String,
     required: [true, 'Vehicle type is required'],
@@ -29,7 +24,7 @@ const RentalSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  ratePerHour: {
+  minKm: {
     type: String,
     trim: true
   },

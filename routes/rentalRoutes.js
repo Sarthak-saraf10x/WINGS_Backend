@@ -32,10 +32,10 @@ router.get('/', async (req, res) => {
  */
 router.post('/', protect, upload.single('image'), async (req, res) => {
   try {
-    const { name, type, capacity, ac, ratePerKm, ratePerDay, ratePerHour, minFare, features } = req.body;
+    const { type, capacity, ac, ratePerKm, ratePerDay, minKm, minFare, features } = req.body;
 
-    if (!name || !type || !capacity) {
-      return res.status(400).json({ success: false, message: 'Please provide vehicle name, type and capacity' });
+    if (!type || !capacity) {
+      return res.status(400).json({ success: false, message: 'Please provide vehicle type and capacity' });
     }
 
     let imageUrl = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=600';
@@ -52,12 +52,12 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
     if (mongoose.connection.readyState !== 1) {
       const newRental = {
         _id: 'mock_r_' + Date.now(),
-        name, type,
+        type,
         capacity: Number(capacity),
         ac: ac === 'true' || ac === true,
         ratePerKm: ratePerKm || '',
         ratePerDay: ratePerDay || '',
-        ratePerHour: ratePerHour || '',
+        minKm: minKm || '',
         minFare: minFare || '',
         features: features || '',
         imageUrl,
@@ -71,12 +71,12 @@ router.post('/', protect, upload.single('image'), async (req, res) => {
     }
 
     const newRental = new Rental({
-      name, type,
+      type,
       capacity: Number(capacity),
       ac: ac === 'true' || ac === true,
       ratePerKm: ratePerKm || '',
       ratePerDay: ratePerDay || '',
-      ratePerHour: ratePerHour || '',
+      minKm: minKm || '',
       minFare: minFare || '',
       features: features || '',
       imageUrl,
@@ -126,20 +126,19 @@ router.delete('/:id', protect, async (req, res) => {
  */
 router.put('/:id', protect, upload.single('image'), async (req, res) => {
   try {
-    const { name, type, capacity, ac, ratePerKm, ratePerDay, ratePerHour, minFare, features } = req.body;
+    const { type, capacity, ac, ratePerKm, ratePerDay, minKm, minFare, features } = req.body;
 
     if (mongoose.connection.readyState !== 1) {
       const rental = mockRentals.find(r => r._id === req.params.id);
       if (!rental) {
         return res.status(404).json({ success: false, message: 'Rental not found' });
       }
-      if (name) rental.name = name;
       if (type) rental.type = type;
       if (capacity) rental.capacity = Number(capacity);
       if (ac !== undefined) rental.ac = ac === 'true' || ac === true;
       if (ratePerKm !== undefined) rental.ratePerKm = ratePerKm;
       if (ratePerDay !== undefined) rental.ratePerDay = ratePerDay;
-      if (ratePerHour !== undefined) rental.ratePerHour = ratePerHour;
+      if (minKm !== undefined) rental.minKm = minKm;
       if (minFare !== undefined) rental.minFare = minFare;
       if (features !== undefined) rental.features = features;
       rental.updatedAt = new Date();
@@ -151,13 +150,12 @@ router.put('/:id', protect, upload.single('image'), async (req, res) => {
       return res.status(404).json({ success: false, message: 'Rental not found' });
     }
 
-    if (name) rental.name = name;
     if (type) rental.type = type;
     if (capacity) rental.capacity = Number(capacity);
     if (ac !== undefined) rental.ac = ac === 'true' || ac === true;
     if (ratePerKm !== undefined) rental.ratePerKm = ratePerKm;
     if (ratePerDay !== undefined) rental.ratePerDay = ratePerDay;
-    if (ratePerHour !== undefined) rental.ratePerHour = ratePerHour;
+    if (minKm !== undefined) rental.minKm = minKm;
     if (minFare !== undefined) rental.minFare = minFare;
     if (features !== undefined) rental.features = features;
 
