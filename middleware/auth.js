@@ -27,7 +27,12 @@ const protect = async (req, res, next) => {
       req.admin = await Admin.findById(decoded.id).select('-password');
 
       if (!req.admin) {
-        return res.status(401).json({ success: false, message: 'Not authorized, admin not found' });
+        return res.status(401).json({ success: false, message: 'Not authorized, user not found' });
+      }
+
+      // Check if user is an admin
+      if (req.admin.role !== 'admin' && decoded.id !== 'mock_admin_id') {
+        return res.status(403).json({ success: false, message: 'Access denied. Admin privileges required.' });
       }
 
       next();

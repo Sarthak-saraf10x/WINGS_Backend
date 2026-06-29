@@ -70,7 +70,8 @@ router.post('/login', async (req, res) => {
       token,
       admin: {
         id: admin._id,
-        username: admin.username
+        username: admin.username,
+        role: admin.role || 'admin'
       }
     });
   } catch (error) {
@@ -140,20 +141,26 @@ router.post('/google-login', async (req, res) => {
         if (admin) {
           admin.googleId = googleId;
           admin.email = email.toLowerCase();
+          admin.role = 'admin';
           await admin.save();
         } else {
           admin = new Admin({
             username: email.split('@')[0],
             email: email.toLowerCase(),
-            googleId
+            googleId,
+            role: 'admin'
           });
           await admin.save();
         }
       } else {
-        return res.status(403).json({ 
-          success: false, 
-          message: `Access denied. The Google account ${email} is not authorized as an admin.` 
+        // Create user account for standard clients
+        admin = new Admin({
+          username: email.split('@')[0] + '_' + Math.random().toString(36).substring(2, 6),
+          email: email.toLowerCase(),
+          googleId,
+          role: 'user'
         });
+        await admin.save();
       }
     } else {
       // Update googleId and email if they were not linked yet
@@ -164,6 +171,12 @@ router.post('/google-login', async (req, res) => {
       }
       if (!admin.email) {
         admin.email = email.toLowerCase();
+        modified = true;
+      }
+      // If the email is the owner email and role is not admin, promote to admin
+      const ownerEmail = process.env.OWNER_EMAIL || 'wings.tours.booking@gmail.com';
+      if (email.toLowerCase() === ownerEmail.toLowerCase() && admin.role !== 'admin') {
+        admin.role = 'admin';
         modified = true;
       }
       if (modified) {
@@ -184,7 +197,8 @@ router.post('/google-login', async (req, res) => {
       admin: {
         id: admin._id,
         username: admin.username,
-        email: admin.email
+        email: admin.email,
+        role: admin.role || 'user'
       }
     });
 
