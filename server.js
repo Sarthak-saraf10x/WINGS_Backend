@@ -47,6 +47,11 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/rentals', rentalRoutes);
 
+// Health check route (used by frontend warm-up ping to avoid Render cold starts)
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date() });
+});
+
 // Root route
 app.get('/', (req, res) => {
   res.json({
