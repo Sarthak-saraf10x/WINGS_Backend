@@ -1,11 +1,11 @@
 const mongoose = require('mongoose');
 const Admin = require('../models/Admin');
+const connectDB = require('../config/db');
 require('dotenv').config();
 
 const seedAdmin = async () => {
   try {
-    const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/wing_tours_travels';
-    await mongoose.connect(mongoUri);
+    await connectDB();
     console.log('Connected to MongoDB for admin seeding...');
 
     // Check if admin already exists
@@ -18,7 +18,11 @@ const seedAdmin = async () => {
     // Create default admin user
     const defaultAdmin = new Admin({
       username: 'admin',
-      password: 'wings@admin123' // Feel free to update this password in your local .env or via database directly
+      fullName: 'System Administrator',
+      phoneNumber: '+91 9876543210',
+      role: 'ADMIN',
+      status: true,
+      password: 'wings@admin123'
     });
 
     await defaultAdmin.save();
@@ -37,3 +41,4 @@ const seedAdmin = async () => {
 };
 
 seedAdmin();
+

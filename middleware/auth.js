@@ -18,21 +18,25 @@ const protect = async (req, res, next) => {
       const mongoose = require('mongoose');
       if (mongoose.connection.readyState !== 1) {
         if (decoded.id === 'mock_admin_id') {
-          req.admin = { id: 'mock_admin_id', username: 'admin (Local/Offline Mode)' };
+          req.admin = { _id: 'mock_admin_id', id: 'mock_admin_id', username: 'admin', role: 'ADMIN', status: true };
           return next();
         }
       }
 
-      // Find the admin in database (excluding the password)
+      // Find user in database (excluding password)
       req.admin = await Admin.findById(decoded.id).select('-password');
 
       if (!req.admin) {
+        if (decoded.id === 'mock_admin_id') {
+          req.admin = { _id: 'mock_admin_id', id: 'mock_admin_id', username: 'admin', role: 'ADMIN', status: true };
+          return next();
+        }
         return res.status(401).json({ success: false, message: 'Not authorized, user not found' });
       }
 
-      // Check if user is an admin
-      if (req.admin.role !== 'admin' && decoded.id !== 'mock_admin_id') {
-        return res.status(403).json({ success: false, message: 'Access denied. Admin privileges required.' });
+      // Check active status
+      if (req.admin.status === false) {
+        return res.status(403).json({ success: false, message: 'Account is deactivated. Please contact administrator.' });
       }
 
       next();
@@ -47,4 +51,17 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+// Middleware to ensure user has ADMIN role
+const requireAdmin = (req, res, next) => {
+  if (!req.admin) {
+    return res.status(401).json({ success: false, message: 'Not authorized' });
+  }
+  const role = (req.admin.role || '').toUpperCase();
+  if (role === 'ADMIN' || req.admin.id === 'mock_admin_id' || req.admin._id === 'mock_admin_id') {
+    return next();
+  }
+  return res.status(403).json({ success: false, message: 'Access denied. Admin privileges required.' });
+};
+
+module.exports = { protect, requireAdmin };
+

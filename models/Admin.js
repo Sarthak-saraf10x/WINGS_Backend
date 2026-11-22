@@ -2,23 +2,34 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const AdminSchema = new mongoose.Schema({
+  fullName: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   username: {
     type: String,
     required: true,
     unique: true,
     trim: true
   },
+  email: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+    lowercase: true
+  },
+  phoneNumber: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   password: {
     type: String,
     required: function() {
       return !this.googleId;
     }
-  },
-  email: {
-    type: String,
-    unique: true,
-    sparse: true,
-    trim: true
   },
   googleId: {
     type: String,
@@ -27,15 +38,30 @@ const AdminSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'user'],
-    default: 'user'
+    enum: ['ADMIN', 'DISPATCHER', 'admin', 'user'],
+    default: 'DISPATCHER'
+  },
+  status: {
+    type: Boolean,
+    default: true
+  },
+  createdBy: {
+    type: String,
+    default: 'SYSTEM'
   }
 }, {
   timestamps: true
 });
 
-// Hash the password before saving
+// Normalize role to uppercase before saving
 AdminSchema.pre('save', async function (next) {
+  if (this.role) {
+    const upper = this.role.toUpperCase();
+    if (upper === 'ADMIN' || upper === 'DISPATCHER') {
+      this.role = upper;
+    }
+  }
+
   if (!this.isModified('password') || !this.password) {
     return next();
   }
@@ -55,3 +81,4 @@ AdminSchema.methods.comparePassword = async function (candidatePassword) {
 };
 
 module.exports = mongoose.model('Admin', AdminSchema);
+

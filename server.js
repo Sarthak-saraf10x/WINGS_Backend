@@ -16,6 +16,7 @@ const contactRoutes = require('./routes/contactRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const vehicleRoutes = require('./routes/vehicleRoutes');
 const rentalRoutes = require('./routes/rentalRoutes');
+const aggregatorRoutes = require('./routes/aggregatorRoutes');
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/rentals', rentalRoutes);
+app.use('/api/aggregator', aggregatorRoutes);
 
 // Health check route (used by frontend warm-up ping to avoid Render cold starts)
 app.get('/api/health', (req, res) => {
