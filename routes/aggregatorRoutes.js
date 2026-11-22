@@ -2052,7 +2052,7 @@ router.post('/bookings', protect, async (req, res) => {
 
     // Sequence allocation
     let dutySlipNo = payload.dutySlipNo || payload.bookingNo;
-    if (!dutySlipNo || String(dutySlipNo).trim() === '') {
+    if (!dutySlipNo || String(dutySlipNo).trim() === '' || String(dutySlipNo).trim().toUpperCase() === 'AUTO') {
       dutySlipNo = await getNextDutySlipSequence();
     }
     const bookingNo = dutySlipNo;
@@ -2136,6 +2136,9 @@ router.post('/bookings', protect, async (req, res) => {
  */
 router.put('/bookings/:id', protect, async (req, res) => {
   try {
+    if (!req.params.id || req.params.id === 'AUTO') {
+      return res.status(400).json({ success: false, message: 'Invalid booking ID "AUTO". Use POST /api/aggregator/bookings to create a new booking.' });
+    }
     const payload = req.body;
     delete payload._id;
     const username = req.admin ? (req.admin.username || 'admin') : 'admin';
