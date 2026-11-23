@@ -2819,5 +2819,29 @@ router.get('/audit-logs', protect, async (req, res) => {
   }
 });
 
+router.post('/audit-logs', protect, async (req, res) => {
+  try {
+    const { action, action_type, entityType = 'BOOKING', target_entity, entityId, target_id, entityName, summary, details } = req.body;
+    const finalAction = action_type || action || 'COMMUNICATION_SENT';
+    const finalEntityId = target_id || entityId || '';
+    const log = await logAudit({
+      req,
+      action: finalAction,
+      action_type: finalAction,
+      entityType: (target_entity || entityType || 'BOOKING').toUpperCase(),
+      target_entity: (target_entity || entityType || 'BOOKING').toUpperCase(),
+      entityId: finalEntityId,
+      target_id: finalEntityId,
+      entityName: entityName || `Booking #${finalEntityId}`,
+      summary: summary || `${finalAction} on ${finalEntityId}`,
+      details: details || {}
+    });
+    return res.status(201).json({ success: true, message: 'Audit log recorded', data: log });
+  } catch (err) {
+    console.error('Error logging audit from client:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
 
