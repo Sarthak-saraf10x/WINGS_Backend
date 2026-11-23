@@ -275,7 +275,7 @@ router.put('/profile', protect, requireAdmin, async (req, res) => {
 // 2. USER MANAGEMENT (DISPATCHER & ADMIN ACCOUNTS)
 // =========================================================================
 
-router.get('/users', protect, async (req, res) => {
+router.get('/users', protect, requireAdmin, async (req, res) => {
   try {
     if (!isDb()) {
       return res.json({ success: true, count: mockUsers.length, data: mockUsers });
@@ -318,6 +318,7 @@ router.post('/users', protect, requireAdmin, async (req, res) => {
         username: cleanUsername,
         email: cleanEmail,
         phoneNumber: phoneNumber.trim(),
+        password: password,
         role: formattedRole,
         status: status !== undefined ? Boolean(status) : true,
         createdBy: req.admin.username || 'admin',
@@ -490,6 +491,8 @@ router.post('/users/:id/reset-password', protect, requireAdmin, async (req, res)
     if (!isDb()) {
       const user = mockUsers.find(u => String(u._id) === String(req.params.id));
       if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+      user.password = newPassword;
+      user.updatedAt = new Date();
       await logAudit({
         req,
         action: 'RESET_PASSWORD',
@@ -584,7 +587,7 @@ router.get('/companies/:id', protect, async (req, res) => {
   }
 });
 
-router.post('/companies', protect, async (req, res) => {
+router.post('/companies', protect, requireAdmin, async (req, res) => {
   try {
     const {
       companyName,
@@ -680,7 +683,7 @@ router.post('/companies', protect, async (req, res) => {
   }
 });
 
-router.put('/companies/:id', protect, async (req, res) => {
+router.put('/companies/:id', protect, requireAdmin, async (req, res) => {
   try {
     const {
       companyName,
@@ -770,7 +773,7 @@ router.put('/companies/:id', protect, async (req, res) => {
   }
 });
 
-router.patch('/companies/:id/status', protect, async (req, res) => {
+router.patch('/companies/:id/status', protect, requireAdmin, async (req, res) => {
   try {
     if (!isDb()) {
       const comp = mockCompanies.find(c => String(c._id) === String(req.params.id));
@@ -855,7 +858,7 @@ router.delete('/companies/:id', protect, requireAdmin, async (req, res) => {
 
 // --- Rate Card Sub-routes ---
 
-router.post('/companies/:id/rate-cards', protect, async (req, res) => {
+router.post('/companies/:id/rate-cards', protect, requireAdmin, async (req, res) => {
   try {
     const {
       vehicleCategory,
@@ -931,7 +934,7 @@ router.post('/companies/:id/rate-cards', protect, async (req, res) => {
   }
 });
 
-router.put('/companies/:id/rate-cards/:rateCardId', protect, async (req, res) => {
+router.put('/companies/:id/rate-cards/:rateCardId', protect, requireAdmin, async (req, res) => {
   try {
     const {
       vehicleCategory,
@@ -1007,7 +1010,7 @@ router.put('/companies/:id/rate-cards/:rateCardId', protect, async (req, res) =>
   }
 });
 
-router.delete('/companies/:id/rate-cards/:rateCardId', protect, async (req, res) => {
+router.delete('/companies/:id/rate-cards/:rateCardId', protect, requireAdmin, async (req, res) => {
   try {
     if (!isDb()) {
       const comp = mockCompanies.find(c => String(c._id) === String(req.params.id));
@@ -1169,7 +1172,7 @@ router.get('/vendors/:id', protect, async (req, res) => {
   }
 });
 
-router.post('/vendors', protect, async (req, res) => {
+router.post('/vendors', protect, requireAdmin, async (req, res) => {
   try {
     const {
       vendorName,
@@ -1263,7 +1266,7 @@ router.post('/vendors', protect, async (req, res) => {
   }
 });
 
-router.put('/vendors/:id', protect, async (req, res) => {
+router.put('/vendors/:id', protect, requireAdmin, async (req, res) => {
   try {
     const {
       vendorName,
@@ -1338,7 +1341,7 @@ router.put('/vendors/:id', protect, async (req, res) => {
   }
 });
 
-router.patch('/vendors/:id/status', protect, async (req, res) => {
+router.patch('/vendors/:id/status', protect, requireAdmin, async (req, res) => {
   try {
     if (!isDb()) {
       const vendor = mockVendors.find(v => String(v._id) === String(req.params.id));
@@ -1423,7 +1426,7 @@ router.delete('/vendors/:id', protect, requireAdmin, async (req, res) => {
 
 // --- Vendor Vehicles Sub-routes ---
 
-router.post('/vendors/:id/vehicles', protect, async (req, res) => {
+router.post('/vendors/:id/vehicles', protect, requireAdmin, async (req, res) => {
   try {
     const {
       registrationNumber,
@@ -1505,7 +1508,7 @@ router.post('/vendors/:id/vehicles', protect, async (req, res) => {
   }
 });
 
-router.put('/vendors/:id/vehicles/:vehicleId', protect, async (req, res) => {
+router.put('/vendors/:id/vehicles/:vehicleId', protect, requireAdmin, async (req, res) => {
   try {
     const {
       registrationNumber,
@@ -1578,7 +1581,7 @@ router.put('/vendors/:id/vehicles/:vehicleId', protect, async (req, res) => {
   }
 });
 
-router.delete('/vendors/:id/vehicles/:vehicleId', protect, async (req, res) => {
+router.delete('/vendors/:id/vehicles/:vehicleId', protect, requireAdmin, async (req, res) => {
   try {
     if (!isDb()) {
       const vendor = mockVendors.find(v => String(v._id) === String(req.params.id));
@@ -1628,7 +1631,7 @@ router.delete('/vendors/:id/vehicles/:vehicleId', protect, async (req, res) => {
 
 // --- Vendor Drivers Sub-routes ---
 
-router.post('/vendors/:id/drivers', protect, async (req, res) => {
+router.post('/vendors/:id/drivers', protect, requireAdmin, async (req, res) => {
   try {
     const {
       driverName,
@@ -1699,7 +1702,7 @@ router.post('/vendors/:id/drivers', protect, async (req, res) => {
   }
 });
 
-router.put('/vendors/:id/drivers/:driverId', protect, async (req, res) => {
+router.put('/vendors/:id/drivers/:driverId', protect, requireAdmin, async (req, res) => {
   try {
     const {
       driverName,
@@ -1766,7 +1769,7 @@ router.put('/vendors/:id/drivers/:driverId', protect, async (req, res) => {
   }
 });
 
-router.delete('/vendors/:id/drivers/:driverId', protect, async (req, res) => {
+router.delete('/vendors/:id/drivers/:driverId', protect, requireAdmin, async (req, res) => {
   try {
     if (!isDb()) {
       const vendor = mockVendors.find(v => String(v._id) === String(req.params.id));
@@ -2672,9 +2675,141 @@ router.post('/bookings/:id/email-invoice', protect, async (req, res) => {
 
 router.get('/audit-logs', protect, async (req, res) => {
   try {
-    const { entityType, limit = 100 } = req.query;
+    const currentRole = String(req.admin.role || 'ADMIN').toUpperCase();
+    const currentUserId = String(req.admin._id || req.admin.id);
+    const currentUsername = String(req.admin.username || '');
+    const { entityType, action, role, user, search, fromDate, toDate, limit = 200 } = req.query;
+
+    const { memoryAuditLogs } = require('../services/auditService');
+
+    if (!isDb()) {
+      let logs = [...memoryAuditLogs];
+
+      // 1. Strict Role Scoping
+      if (currentRole === 'DISPATCHER') {
+        logs = logs.filter(l => 
+          String(l.userId) === currentUserId ||
+          String(l.actor_id) === currentUserId ||
+          String(l.username || '').toLowerCase() === currentUsername.toLowerCase() ||
+          String(l.actor_name || '').toLowerCase() === currentUsername.toLowerCase()
+        );
+      } else {
+        // Admin Filters
+        if (user) {
+          const uLower = String(user).trim().toLowerCase();
+          logs = logs.filter(l => 
+            String(l.userId || '').toLowerCase() === uLower ||
+            String(l.actor_id || '').toLowerCase() === uLower ||
+            String(l.username || '').toLowerCase() === uLower ||
+            String(l.actor_name || '').toLowerCase() === uLower
+          );
+        }
+        if (role) {
+          const rUpper = String(role).trim().toUpperCase();
+          logs = logs.filter(l => 
+            (l.userRole && String(l.userRole).toUpperCase() === rUpper) ||
+            (l.actor_role && String(l.actor_role).toUpperCase() === rUpper)
+          );
+        }
+      }
+
+      // 2. Entity Type Filter
+      if (entityType) {
+        const entUpper = entityType.trim().toUpperCase();
+        logs = logs.filter(l => 
+          (l.entityType && l.entityType.toUpperCase() === entUpper) ||
+          (l.target_entity && l.target_entity.toUpperCase() === entUpper)
+        );
+      }
+
+      // 3. Action Filter
+      if (action) {
+        const actUpper = action.trim().toUpperCase();
+        logs = logs.filter(l => 
+          (l.action && l.action.toUpperCase().includes(actUpper)) ||
+          (l.action_type && l.action_type.toUpperCase().includes(actUpper))
+        );
+      }
+
+      // 4. Target / Search Filter (Booking/DS No, Target ID, Name, Summary)
+      if (search) {
+        const sLower = search.trim().toLowerCase();
+        logs = logs.filter(l => 
+          (l.entityId && String(l.entityId).toLowerCase().includes(sLower)) ||
+          (l.target_id && String(l.target_id).toLowerCase().includes(sLower)) ||
+          (l.entityName && String(l.entityName).toLowerCase().includes(sLower)) ||
+          (l.summary && String(l.summary).toLowerCase().includes(sLower))
+        );
+      }
+
+      // 5. Date Range Filters
+      if (fromDate) {
+        const from = new Date(fromDate);
+        logs = logs.filter(l => new Date(l.timestamp) >= from);
+      }
+      if (toDate) {
+        const to = new Date(new Date(toDate).setHours(23, 59, 59, 999));
+        logs = logs.filter(l => new Date(l.timestamp) <= to);
+      }
+
+      logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      return res.json({ success: true, count: logs.length, data: logs.slice(0, Number(limit)) });
+    }
+
+    // Database Mode (MongoDB Connected)
     let filter = {};
-    if (entityType) filter.entityType = entityType.toUpperCase();
+
+    // 1. Strict Role Scoping
+    if (currentRole === 'DISPATCHER') {
+      filter.$or = [
+        { userId: currentUserId },
+        { actor_id: currentUserId },
+        { username: currentUsername },
+        { actor_name: currentUsername }
+      ];
+    } else {
+      if (user) {
+        filter.$or = [
+          { userId: user },
+          { actor_id: user },
+          { username: user },
+          { actor_name: user }
+        ];
+      }
+      if (role) {
+        filter.$or = [
+          { userRole: role.toUpperCase() },
+          { actor_role: role.toUpperCase() }
+        ];
+      }
+    }
+
+    if (entityType) {
+      filter.entityType = entityType.toUpperCase();
+    }
+
+    if (action) {
+      filter.action = new RegExp(action, 'i');
+    }
+
+    if (search) {
+      const regex = new RegExp(search, 'i');
+      filter.$and = filter.$and || [];
+      filter.$and.push({
+        $or: [
+          { entityId: regex },
+          { target_id: regex },
+          { entityName: regex },
+          { summary: regex }
+        ]
+      });
+    }
+
+    if (fromDate || toDate) {
+      filter.timestamp = {};
+      if (fromDate) filter.timestamp.$gte = new Date(fromDate);
+      if (toDate) filter.timestamp.$lte = new Date(new Date(toDate).setHours(23, 59, 59, 999));
+    }
 
     const logs = await getAuditLogs(filter, Number(limit));
     res.json({ success: true, count: logs.length, data: logs });

@@ -26,7 +26,7 @@ connectDB();
 // Middleware
 app.use(cors({
   origin: '*', // Allow all origins for development, can restrict to frontend URL in production
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());

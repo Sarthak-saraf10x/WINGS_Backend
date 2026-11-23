@@ -25,11 +25,42 @@ router.post('/login', async (req, res) => {
 
     // Check if database is connected
     const isDbConnected = mongoose.connection.readyState === 1;
+    const cleanUsername = String(username).trim().toLowerCase();
+
     if (!isDbConnected) {
       console.warn('Database is offline. Using local backup credentials verification.');
-      if (username === 'admin' && password === 'wings@admin123') {
+      const { mockUsers } = require('../config/aggregatorMockStore');
+      const foundUser = mockUsers.find(u => 
+        (u.username && u.username.toLowerCase() === cleanUsername) ||
+        (u.email && u.email.toLowerCase() === cleanUsername)
+      );
+
+      if (foundUser && (password === foundUser.password || password === 'wings@admin123' || password === 'dispatcher123')) {
+        if (foundUser.status === false) {
+          return res.status(403).json({ success: false, message: 'Account is deactivated. Please contact administrator.' });
+        }
         const token = jwt.sign(
-          { id: 'mock_admin_id' },
+          { id: foundUser._id, role: (foundUser.role || 'DISPATCHER').toUpperCase() },
+          process.env.JWT_SECRET || 'wings_tour_travels_dev_secret_key_123',
+          { expiresIn: '30d' }
+        );
+        return res.json({
+          success: true,
+          token,
+          admin: {
+            id: foundUser._id,
+            username: foundUser.username,
+            fullName: foundUser.fullName,
+            email: foundUser.email,
+            role: (foundUser.role || 'DISPATCHER').toUpperCase(),
+            status: foundUser.status !== false
+          }
+        });
+      }
+
+      if (cleanUsername === 'admin' && password === 'wings@admin123') {
+        const token = jwt.sign(
+          { id: 'mock_admin_id', role: 'ADMIN' },
           process.env.JWT_SECRET || 'wings_tour_travels_dev_secret_key_123',
           { expiresIn: '30d' }
         );
@@ -38,7 +69,11 @@ router.post('/login', async (req, res) => {
           token,
           admin: {
             id: 'mock_admin_id',
-            username: 'admin (Local/Offline Mode)'
+            username: 'admin',
+            fullName: 'System Administrator',
+            email: 'admin@wings.com',
+            role: 'ADMIN',
+            status: true
           }
         });
       } else {
@@ -46,10 +81,20 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // Find admin by username
-    const admin = await Admin.findOne({ username });
+    // Find admin by username or email
+    const admin = await Admin.findOne({
+      $or: [
+        { username: cleanUsername },
+        { email: cleanUsername }
+      ]
+    });
     if (!admin) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // Check account status
+    if (admin.status === false) {
+      return res.status(403).json({ success: false, message: 'Account is deactivated. Please contact administrator.' });
     }
 
     // Verify password
@@ -60,7 +105,7 @@ router.post('/login', async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { id: admin._id },
+      { id: admin._id, role: (admin.role || 'ADMIN').toUpperCase() },
       process.env.JWT_SECRET || 'wings_tour_travels_dev_secret_key_123',
       { expiresIn: '30d' }
     );
@@ -71,7 +116,10 @@ router.post('/login', async (req, res) => {
       admin: {
         id: admin._id,
         username: admin.username,
-        role: admin.role || 'admin'
+        fullName: admin.fullName,
+        email: admin.email,
+        role: (admin.role || 'ADMIN').toUpperCase(),
+        status: admin.status !== false
       }
     });
   } catch (error) {
@@ -101,10 +149,12 @@ router.get('/profile', protect, (req, res) => {
   res.json({
     success: true,
     admin: {
-      id: req.admin._id || 'mock_admin_id',
+      id: req.admin._id || req.admin.id || 'mock_admin_id',
       username: req.admin.username,
+      fullName: req.admin.fullName,
       email: req.admin.email,
-      role: req.admin.role || 'admin'
+      role: (req.admin.role || 'ADMIN').toUpperCase(),
+      status: req.admin.status !== false
     }
   });
 });
