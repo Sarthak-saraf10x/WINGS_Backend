@@ -112,15 +112,12 @@ function computeBookingStatus(b) {
     return 'DR_DUTY_ACCPT';
   }
 
-  // 5. Missing Timing:
+  // 5. Missing Timing (Auto-detected):
   const hasTiming = Boolean(
-    !b.noTiming &&
-    (
-      (b.reqTime && b.reqTime.trim().length > 0) ||
-      (b.repHours && b.repHours.trim().length > 0)
-    )
+    (b.reqTime && String(b.reqTime).trim().length > 0 && String(b.reqTime).trim() !== ':') ||
+    (b.repHours && String(b.repHours).trim().length > 0)
   );
-  if (!hasTiming || b.noTiming) {
+  if (!hasTiming) {
     return 'NO_TIMING';
   }
 
@@ -2060,6 +2057,13 @@ router.post('/bookings', protect, async (req, res) => {
     }
     const bookingNo = dutySlipNo;
 
+    // Auto-detect whether timing is present: true if repHours or reqTime is filled
+    const hasTiming = Boolean(
+      (payload.reqTime && String(payload.reqTime).trim().length > 0 && String(payload.reqTime).trim() !== ':') ||
+      (payload.repHours && String(payload.repHours).trim().length > 0)
+    );
+    payload.noTiming = !hasTiming;
+
     // Auto status computation if not manually set
     let computedStatus = payload.status;
     let isManualStatus = Boolean(payload.isManualStatus);
@@ -2162,6 +2166,14 @@ router.put('/bookings/:id', protect, async (req, res) => {
       b.updatedBy = username;
       b.updatedAt = new Date();
 
+      if (payload.repHours !== undefined || payload.reqTime !== undefined) {
+        const hasTiming = Boolean(
+          (b.reqTime && String(b.reqTime).trim().length > 0 && String(b.reqTime).trim() !== ':') ||
+          (b.repHours && String(b.repHours).trim().length > 0)
+        );
+        b.noTiming = !hasTiming;
+      }
+
       // Check if status should be auto-recomputed
       if (payload.resetToAuto === true || !b.isManualStatus) {
         b.status = computeBookingStatus(b);
@@ -2192,6 +2204,14 @@ router.put('/bookings/:id', protect, async (req, res) => {
 
     Object.assign(booking, payload);
     booking.updatedBy = username;
+
+    if (payload.repHours !== undefined || payload.reqTime !== undefined) {
+      const hasTiming = Boolean(
+        (booking.reqTime && String(booking.reqTime).trim().length > 0 && String(booking.reqTime).trim() !== ':') ||
+        (booking.repHours && String(booking.repHours).trim().length > 0)
+      );
+      booking.noTiming = !hasTiming;
+    }
 
     if (payload.resetToAuto === true || !booking.isManualStatus) {
       booking.status = computeBookingStatus(booking);
