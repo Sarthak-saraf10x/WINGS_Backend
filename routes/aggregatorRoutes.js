@@ -2457,6 +2457,86 @@ router.post('/bookings/:id/upload-duty-slip', protect, upload.single('dutySlip')
 });
 
 /**
+ * @route   POST /api/aggregator/bookings/:id/start-duty
+ * @desc    Dispatcher manually starts duty after communicating with driver
+ * @access  Protected
+ */
+router.post('/bookings/:id/start-duty', protect, async (req, res) => {
+  try {
+    const username = req.admin ? (req.admin.username || 'admin') : 'admin';
+    let booking = null;
+
+    if (!isDb()) {
+      booking = mockBookings.find(x => 
+        String(x._id) === String(req.params.id) || 
+        String(x.bookingNo) === String(req.params.id) || 
+        String(x.dutySlipNo) === String(req.params.id)
+      );
+      if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+      booking.dutyStarted = true;
+      if (req.body.driverAccepted !== undefined) {
+        booking.driverAccepted = Boolean(req.body.driverAccepted);
+      } else {
+        booking.driverAccepted = true;
+      }
+      booking.dutyStartTime = req.body.dutyStartTime || new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      booking.status = computeBookingStatus(booking);
+      booking.updatedBy = username;
+      booking.updatedAt = new Date();
+
+      await logAudit({
+        req,
+        action: 'START_DUTY',
+        entityType: 'BOOKING',
+        entityId: booking._id,
+        entityName: `Duty #${booking.dutySlipNo || booking.bookingNo}`,
+        details: { status: booking.status, startedBy: username, dutyStartTime: booking.dutyStartTime }
+      });
+
+      return res.json({
+        success: true,
+        message: `Duty #${booking.dutySlipNo || booking.bookingNo} started successfully (Status: DR DUTY START)`,
+        data: booking
+      });
+    }
+
+    booking = await findBookingDoc(req.params.id);
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+    booking.dutyStarted = true;
+    if (req.body.driverAccepted !== undefined) {
+      booking.driverAccepted = Boolean(req.body.driverAccepted);
+    } else {
+      booking.driverAccepted = true;
+    }
+    booking.dutyStartTime = req.body.dutyStartTime || new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    booking.status = computeBookingStatus(booking);
+    booking.updatedBy = username;
+
+    await booking.save();
+
+    await logAudit({
+      req,
+      action: 'START_DUTY',
+      entityType: 'BOOKING',
+      entityId: booking._id,
+      entityName: `Duty #${booking.dutySlipNo || booking.bookingNo}`,
+      details: { status: booking.status, startedBy: username, dutyStartTime: booking.dutyStartTime }
+    });
+
+    return res.json({
+      success: true,
+      message: `Duty #${booking.dutySlipNo || booking.bookingNo} started successfully (Status: DR DUTY START)`,
+      data: booking
+    });
+  } catch (err) {
+    console.error('Error starting duty:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
  * @route   POST /api/aggregator/bookings/:id/close-duty
  * @desc    Enter returned duty figures, close duty, and AUTO-GENERATE TAX INVOICE WITH EXACT SAME NUMBER
  * @access  Protected
@@ -2508,6 +2588,15 @@ router.post('/bookings/:id/close-duty', protect, async (req, res) => {
 
     if (!company) company = {};
     if (!brokerProfile) brokerProfile = {};
+
+    // Action rule: Close duty & generate invoice is only applicable when booking status is DR Duty Started
+    const currentStatus = computeBookingStatus(booking);
+    if (!booking.dutyStarted && currentStatus !== 'DR_DUTY_START' && currentStatus !== 'DR_DUTY_CLOSE' && !booking.isInvoiced) {
+      return res.status(400).json({
+        success: false,
+        message: `Close Duty & Generate Invoice is only applicable when booking status is "DR Duty Started". Current status: ${currentStatus.replace(/_/g, ' ')}.`
+      });
+    }
 
     // 1. Save duty close readings
     const readings = {
@@ -2629,6 +2718,15 @@ router.get('/bookings/:id/invoice', protect, async (req, res) => {
 
     if (!company) company = {};
     if (!brokerProfile) brokerProfile = {};
+
+    // Action rule: Close duty & generate invoice is only applicable when booking status is DR Duty Started
+    const currentStatus = computeBookingStatus(booking);
+    if (!booking.dutyStarted && currentStatus !== 'DR_DUTY_START' && currentStatus !== 'DR_DUTY_CLOSE' && !booking.isInvoiced) {
+      return res.status(400).json({
+        success: false,
+        message: `Close Duty & Generate Invoice is only applicable when booking status is "DR Duty Started". Current status: ${currentStatus.replace(/_/g, ' ')}.`
+      });
+    }
 
     let invoice = booking.invoiceDetails;
     if (!invoice || !invoice.invoiceNo || !booking.isInvoiced) {

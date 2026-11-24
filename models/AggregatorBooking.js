@@ -232,6 +232,11 @@ const AggregatorBookingSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  dutyStartTime: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   dutyClosed: {
     type: Boolean,
     default: false
