@@ -2487,7 +2487,8 @@ router.post('/bookings/:id/start-duty', protect, async (req, res) => {
 
       await logAudit({
         req,
-        action: 'START_DUTY',
+        action: 'DUTY_STARTED',
+        action_type: 'DUTY_STARTED',
         entityType: 'BOOKING',
         entityId: booking._id,
         entityName: `Duty #${booking.dutySlipNo || booking.bookingNo}`,
@@ -2518,7 +2519,8 @@ router.post('/bookings/:id/start-duty', protect, async (req, res) => {
 
     await logAudit({
       req,
-      action: 'START_DUTY',
+      action: 'DUTY_STARTED',
+      action_type: 'DUTY_STARTED',
       entityType: 'BOOKING',
       entityId: booking._id,
       entityName: `Duty #${booking.dutySlipNo || booking.bookingNo}`,
@@ -2637,7 +2639,8 @@ router.post('/bookings/:id/close-duty', protect, async (req, res) => {
 
       await logAudit({
         req,
-        action: 'CLOSE_DUTY',
+        action: 'DUTY_CLOSED',
+        action_type: 'DUTY_CLOSED',
         entityType: 'BOOKING',
         entityId: booking._id,
         entityName: `Duty Slip #${booking.dutySlipNo}`,
@@ -2665,7 +2668,8 @@ router.post('/bookings/:id/close-duty', protect, async (req, res) => {
 
     await logAudit({
       req,
-      action: 'CLOSE_DUTY',
+      action: 'DUTY_CLOSED',
+      action_type: 'DUTY_CLOSED',
       entityType: 'BOOKING',
       entityId: booking._id,
       entityName: `Duty Slip #${booking.dutySlipNo}`,
@@ -2783,6 +2787,127 @@ router.post('/bookings/:id/email-invoice', protect, async (req, res) => {
     });
   } catch (err) {
     console.error('Error emailing invoice:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * @route   POST /api/aggregator/bookings/:id/generate-invoice
+ * @desc    Generate same-number tax invoice from Billing section
+ * @access  Protected
+ */
+router.post('/bookings/:id/generate-invoice', protect, async (req, res) => {
+  try {
+    const username = req.admin ? (req.admin.username || 'admin') : 'admin';
+    let booking = null;
+    let company = null;
+    let brokerProfile = null;
+
+    if (!isDb()) {
+      booking = mockBookings.find(x => String(x._id) === String(req.params.id) || x.bookingNo === String(req.params.id) || x.dutySlipNo === String(req.params.id));
+      if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+      company = mockCompanies.find(c => String(c._id) === String(booking.clientId) || c.companyName === booking.clientName) || mockCompanies[0];
+      brokerProfile = mockBrokerProfile;
+    } else {
+      booking = await findBookingDoc(req.params.id);
+      if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+      company = await findCompanyDoc(booking.clientId, booking.clientName);
+      brokerProfile = await BrokerProfile.findOne();
+    }
+
+    if (!company) company = {};
+    if (!brokerProfile) brokerProfile = {};
+
+    // Allow updating readings if passed in body
+    if (req.body.dutyCloseReadings) {
+      booking.dutyCloseReadings = Object.assign(booking.dutyCloseReadings || {}, req.body.dutyCloseReadings);
+    }
+
+    const invoiceData = calculateInvoiceForBooking(booking, company, brokerProfile);
+    booking.isInvoiced = true;
+    booking.invoiceDetails = invoiceData;
+    booking.updatedBy = username;
+    booking.updatedAt = new Date();
+
+    if (isDb()) {
+      await booking.save();
+    }
+
+    await logAudit({
+      req,
+      action: 'GENERATE_INVOICE',
+      action_type: 'GENERATE_INVOICE',
+      entityType: 'INVOICE',
+      entityId: invoiceData.invoiceNo,
+      entityName: `Tax Invoice #${invoiceData.invoiceNo} for ${company.companyName || booking.clientName}`,
+      details: { grandTotal: invoiceData.grandTotal, taxableAmount: invoiceData.taxableAmount, dutySlipNo: booking.dutySlipNo }
+    });
+
+    res.json({
+      success: true,
+      message: `Tax Invoice #${invoiceData.invoiceNo} generated successfully!`,
+      data: booking,
+      invoice: invoiceData
+    });
+  } catch (err) {
+    console.error('Error generating invoice from billing:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * @route   POST /api/aggregator/bookings/:id/record-payment
+ * @desc    Record client payment and mark invoice paid
+ * @access  Protected
+ */
+router.post('/bookings/:id/record-payment', protect, async (req, res) => {
+  try {
+    const username = req.admin ? (req.admin.username || 'admin') : 'admin';
+    const { mode, utr, date, amount, notes } = req.body;
+
+    let booking = null;
+    if (!isDb()) {
+      booking = mockBookings.find(x => String(x._id) === String(req.params.id) || x.bookingNo === String(req.params.id) || x.dutySlipNo === String(req.params.id));
+      if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+    } else {
+      booking = await findBookingDoc(req.params.id);
+      if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    booking.isPaid = true;
+    booking.paymentStatus = 'PAID';
+    booking.paymentDetails = {
+      mode: mode || 'NEFT/RTGS',
+      utr: utr || '',
+      date: date ? new Date(date) : new Date(),
+      amount: Number(amount || (booking.invoiceDetails && booking.invoiceDetails.grandTotal) || 0),
+      notes: notes || '',
+      recordedBy: username
+    };
+    booking.updatedBy = username;
+    booking.updatedAt = new Date();
+
+    if (isDb()) {
+      await booking.save();
+    }
+
+    await logAudit({
+      req,
+      action: 'PAYMENT_RECORDED',
+      action_type: 'PAYMENT_RECORDED',
+      entityType: 'INVOICE',
+      entityId: booking.dutySlipNo,
+      entityName: `Payment for Invoice #${booking.dutySlipNo} (${booking.clientName})`,
+      details: { amount: booking.paymentDetails.amount, mode: booking.paymentDetails.mode, utr: booking.paymentDetails.utr }
+    });
+
+    res.json({
+      success: true,
+      message: `Payment of ₹${booking.paymentDetails.amount} recorded for Invoice #${booking.dutySlipNo}!`,
+      data: booking
+    });
+  } catch (err) {
+    console.error('Error recording payment:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

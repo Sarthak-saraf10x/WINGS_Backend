@@ -313,6 +313,24 @@ const AggregatorBookingSchema = new mongoose.Schema({
     amountInWords: { type: String, default: '' }
   },
 
+  // Payment Tracking & Status
+  isPaid: {
+    type: Boolean,
+    default: false
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['PENDING', 'INVOICED', 'PAID'],
+    default: 'PENDING'
+  },
+  paymentDetails: {
+    mode: { type: String, default: '' },
+    utr: { type: String, default: '' },
+    date: { type: Date, default: null },
+    amount: { type: Number, default: 0 },
+    notes: { type: String, default: '' }
+  },
+
   // Audit
   createdBy: {
     type: String,
